@@ -1,0 +1,9 @@
+{
+  "contract": "QFCCards",
+  "address": "0x92a8Ca9C516f9Fd835E87b5b7357B279a41b422d",
+  "deployer": "0x5BE349d95787b0B4135CC4CfEe27AD70AC9F3132",
+  "txHash": "0x96ce16c0691971c35689f49eb3d10528a8656bbd17855fe20d8fee3550638d6c",
+  "chainId": 9000,
+  "rpc": "https://rpc.testnet.qfc.network",
+  "deployedAt": "2026-03-09T23:50:08.047Z"
+}
