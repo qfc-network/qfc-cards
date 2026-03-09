@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QFC AI Cards</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    #app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Menu screen */
+    #menu {
+      text-align: center;
+    }
+    #menu h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #FF4444, #4488FF, #44AA44, #FFAA00, #8844AA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #menu .subtitle {
+      color: #888;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    #menu input {
+      display: block;
+      margin: 0 auto 1rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1.1rem;
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      width: 280px;
+      text-align: center;
+    }
+    #menu input:focus { outline: none; border-color: #4488FF; }
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      margin: 0.5rem;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn:hover { transform: scale(1.05); }
+    .btn:active { transform: scale(0.97); }
+    .btn-pvp { background: #4488FF; color: #fff; }
+    .btn-ai { background: #FF4444; color: #fff; }
+    .btn-back { background: #333; color: #ccc; font-size: 0.9rem; padding: 0.5rem 1.5rem; }
+    /* Deck selection */
+    #deck-select {
+      display: none;
+      text-align: center;
+      width: 100%;
+      max-width: 1100px;
+      padding: 1rem;
+    }
+    #deck-select h2 { margin-bottom: 0.5rem; }
+    #deck-select .info { color: #888; margin-bottom: 1rem; }
+    #card-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+    .deck-card {
+      width: 120px;
+      height: 170px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .deck-card:hover { transform: translateY(-4px); }
+    .deck-card.selected { border-color: #FFD700; box-shadow: 0 0 12px rgba(255,215,0,0.4); }
+    #start-battle {
+      margin-top: 1rem;
+      background: #44AA44;
+      color: #fff;
+    }
+    #start-battle:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    /* Waiting */
+    #waiting {
+      display: none;
+      text-align: center;
+    }
+    #waiting h2 { margin-bottom: 1rem; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #333;
+      border-top-color: #4488FF;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 1rem auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Battle screen */
+    #battle {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #game-canvas {
+      display: block;
+    }
+    #game-log {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 240px;
+      height: 100%;
+      background: rgba(10,10,26,0.92);
+      border-left: 1px solid #222;
+      padding: 1rem 0.75rem;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    #game-log h3 { margin-bottom: 0.5rem; color: #888; font-size: 0.9rem; }
+    .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+    /* End screen */
+    #end-screen {
+      display: none;
+      text-align: center;
+    }
+    #end-screen h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    #end-screen .result { font-size: 1.3rem; margin-bottom: 2rem; color: #ccc; }
+    /* Actions bar */
+    #actions-bar {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .btn-action {
+      padding: 0.5rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-end-turn { background: #FFAA00; color: #000; }
+    .btn-end-turn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-attack-face { background: #FF4444; color: #fff; }
+    .btn-attack-face:disabled { opacity: 0.3; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Menu -->
+    <div id="menu">
+      <h1>QFC AI Cards</h1>
+      <p class="subtitle">AI Strategy Card Game on QFC Chain</p>
+      <input id="player-name" type="text" placeholder="Enter your name" maxlength="20" />
+      <div>
+        <button class="btn btn-pvp" id="btn-pvp">⚔️ PvP Battle</button>
+        <button class="btn btn-ai" id="btn-ai">🤖 vs AI</button>
+      </div>
+    </div>
+    <!-- Deck Selection -->
+    <div id="deck-select">
+      <h2>Build Your Deck</h2>
+      <p class="info">Select <span id="deck-count">0</span>/15 cards</p>
+      <div id="card-pool"></div>
+      <div>
+        <button class="btn btn-back" id="btn-back-menu">Back</button>
+        <button class="btn btn" id="start-battle" disabled>Start Battle</button>
+      </div>
+    </div>
+    <!-- Waiting -->
+    <div id="waiting">
+      <h2>Waiting for opponent...</h2>
+      <div class="spinner"></div>
+      <button class="btn btn-back" id="btn-cancel-wait">Cancel</button>
+    </div>
+    <!-- Battle -->
+    <div id="battle">
+      <canvas id="game-canvas"></canvas>
+      <div id="game-log">
+        <h3>Game Log</h3>
+      </div>
+      <div id="actions-bar">
+        <button class="btn-action btn-end-turn" id="btn-end-turn">End Turn</button>
+        <button class="btn-action btn-attack-face" id="btn-attack-face">Attack Face</button>
+      </div>
+    </div>
+    <!-- End Screen -->
+    <div id="end-screen">
+      <h1 id="end-title">Game Over</h1>
+      <p class="result" id="end-result"></p>
+      <button class="btn btn-pvp" id="btn-play-again">Play Again</button>
+    </div>
+  </div>
+  <script type="module" src="/client/main.ts"></script>
+</body>
+</html>
