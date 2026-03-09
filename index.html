@@ -175,8 +175,16 @@
 </head>
 <body>
   <div id="app">
+    <!-- Chain status bar -->
+    <div id="chain-bar" style="position:fixed;top:0;left:0;right:0;height:32px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:0.75rem;color:#666;z-index:100;">
+      <span>QFC Testnet ⛓️ Block <span id="chain-block">#---</span></span>
+      <div>
+        <span id="wallet-info" class="hidden" style="margin-right:8px;color:#6e6;"><span id="wallet-addr"></span> | <span id="wallet-bal"></span> QFC</span>
+        <button id="btn-connect-wallet" style="padding:2px 10px;border:1px solid #444;border-radius:4px;background:#1a1a2e;color:#aaa;cursor:pointer;font-size:0.75rem;">🔗 Connect Wallet</button>
+      </div>
+    </div>
     <!-- Menu -->
-    <div id="menu">
+    <div id="menu" style="margin-top:32px;">
       <h1>QFC AI Cards</h1>
       <p class="subtitle">AI Strategy Card Game on QFC Chain</p>
       <input id="player-name" type="text" placeholder="Enter your name" maxlength="20" />
@@ -216,6 +224,10 @@
     <div id="end-screen">
       <h1 id="end-title">Game Over</h1>
       <p class="result" id="end-result"></p>
+      <div id="chain-submit" class="hidden" style="margin-bottom:1rem;">
+        <button class="btn" id="btn-submit-chain" style="background:#1a3a1a;color:#6e6;border:1px solid #2a5a2a;">⛓️ Record on Chain</button>
+        <p id="chain-submit-status" style="font-size:0.85rem;margin-top:0.5rem;"></p>
+      </div>
       <button class="btn btn-pvp" id="btn-play-again">Play Again</button>
     </div>
   </div>

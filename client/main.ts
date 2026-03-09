@@ -2,6 +2,13 @@ import { Card, ServerMessage, ELEMENT_COLORS, ELEMENT_EMOJI } from "./types";
 import { connect, send, fetchCards, disconnect } from "./api";
 import { BattleUI } from "./BattleUI";
 import { drawCard, CARD_WIDTH, CARD_HEIGHT } from "./CardRenderer";
+import {
+  connectWallet as chainConnect,
+  connectWithKey,
+  getWalletState,
+  getChainInfo,
+  recordBattleOnChain,
+} from "./chain";
 
 // DOM elements
 const menuEl = document.getElementById("menu")!;
@@ -18,6 +25,7 @@ let allCards: Card[] = [];
 let selectedDeck: Set<string> = new Set();
 let gameMode: "pvp" | "ai" = "ai";
 let battleUI: BattleUI | null = null;
+let lastGameResult: { winner: string; loser: string; score: number } | null = null;
 
 // Screen management
 function showScreen(id: string): void {
@@ -67,6 +75,11 @@ async function init(): Promise<void> {
     if (selectedDeck.size !== 15) return;
     startGame();
   });
+
+  // Chain integration
+  document.getElementById("btn-connect-wallet")?.addEventListener("click", handleConnectWallet);
+  document.getElementById("btn-submit-chain")?.addEventListener("click", handleSubmitChain);
+  loadChainInfo();
 }
 
 function showDeckSelect(): void {
@@ -150,7 +163,12 @@ function handleServerMessage(msg: ServerMessage): void {
 
     case "game_over": {
       battleUI?.update(msg.state);
-      // Show end screen after delay
+      const winnerPlayer = msg.state.players.find(p => p.name === msg.winner);
+      lastGameResult = {
+        winner: msg.winner,
+        loser: msg.state.players.find(p => p.name !== msg.winner)?.name || "AI",
+        score: winnerPlayer ? winnerPlayer.hp : 0,
+      };
       setTimeout(() => {
         showScreen("end-screen");
         const title = document.getElementById("end-title")!;
@@ -165,6 +183,11 @@ function handleServerMessage(msg: ServerMessage): void {
           title.style.color = "#FF4444";
           result.textContent = `${msg.winner} wins.`;
         }
+        // Show chain submit if wallet connected
+        if (getWalletState().connected) {
+          document.getElementById("chain-submit")?.classList.remove("hidden");
+          document.getElementById("chain-submit-status")!.textContent = "";
+        }
       }, 1500);
       break;
     }
@@ -172,6 +195,61 @@ function handleServerMessage(msg: ServerMessage): void {
     case "error":
       console.error("Server error:", msg.message);
       break;
+  }
+}
+
+// ── Chain integration ──────────────────────────────
+async function loadChainInfo(): Promise<void> {
+  try {
+    const info = await getChainInfo();
+    const el = document.getElementById("chain-block");
+    if (el) el.textContent = `#${info.blockNumber}`;
+  } catch {}
+}
+
+async function handleConnectWallet(): Promise<void> {
+  const btnEl = document.getElementById("btn-connect-wallet")!;
+  try {
+    if (typeof (window as any).ethereum !== "undefined") {
+      await chainConnect();
+    } else {
+      const key = prompt("No MetaMask detected.\nEnter testnet private key (0x...):");
+      if (!key) return;
+      await connectWithKey(key);
+    }
+    const ws = getWalletState();
+    if (!ws.connected || !ws.address) return;
+    document.getElementById("wallet-addr")!.textContent = ws.address.slice(0, 6) + "..." + ws.address.slice(-4);
+    document.getElementById("wallet-bal")!.textContent = parseFloat(ws.balance || "0").toFixed(2);
+    document.getElementById("wallet-info")!.classList.remove("hidden");
+    btnEl.textContent = "✅ Connected";
+    (btnEl as HTMLButtonElement).style.background = "#1a3a1a";
+  } catch (err: any) {
+    alert("Wallet connection failed: " + (err.message || err));
+  }
+}
+
+async function handleSubmitChain(): Promise<void> {
+  if (!lastGameResult) return;
+  const ws = getWalletState();
+  if (!ws.connected || !ws.address) return;
+
+  const statusEl = document.getElementById("chain-submit-status")!;
+  statusEl.textContent = "⏳ Recording battle on QFC chain...";
+  statusEl.style.color = "#ffa500";
+
+  try {
+    const result = await recordBattleOnChain(ws.address, ws.address, lastGameResult.score);
+    if (result.success) {
+      statusEl.textContent = `✅ On-chain! TX: ${result.txHash.slice(0, 14)}...`;
+      statusEl.style.color = "#6e6";
+    } else {
+      statusEl.textContent = "❌ Transaction failed";
+      statusEl.style.color = "#e44";
+    }
+  } catch (err: any) {
+    statusEl.textContent = `❌ ${err.message?.slice(0, 50) || "Failed"}`;
+    statusEl.style.color = "#e44";
   }
 }
 
