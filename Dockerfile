@@ -1,5 +1,6 @@
 FROM node:22-slim AS builder
 WORKDIR /app
+COPY qfc-chain-sdk/ ./qfc-chain-sdk/
 COPY package*.json ./
 RUN npm ci
 COPY . .
@@ -9,6 +10,7 @@ FROM node:22-slim
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+COPY qfc-chain-sdk/ ./qfc-chain-sdk/
 COPY package*.json ./
 RUN npm ci --omit=dev
 EXPOSE 3220
