@@ -3,11 +3,9 @@ import { connect, send, fetchCards, disconnect } from "./api";
 import { BattleUI } from "./BattleUI";
 import { drawCard, CARD_WIDTH, CARD_HEIGHT } from "./CardRenderer";
 import {
-  connectWallet as chainConnect,
-  connectWithKey,
   getWalletState,
-  getChainInfo,
   recordBattleOnChain,
+  initChainUI,
 } from "./chain";
 
 // DOM elements
@@ -76,10 +74,9 @@ async function init(): Promise<void> {
     startGame();
   });
 
-  // Chain integration
-  document.getElementById("btn-connect-wallet")?.addEventListener("click", handleConnectWallet);
+  // Chain integration — wallet UI handled by SDK
+  initChainUI();
   document.getElementById("btn-submit-chain")?.addEventListener("click", handleSubmitChain);
-  loadChainInfo();
 }
 
 function showDeckSelect(): void {
@@ -198,37 +195,7 @@ function handleServerMessage(msg: ServerMessage): void {
   }
 }
 
-// ── Chain integration ──────────────────────────────
-async function loadChainInfo(): Promise<void> {
-  try {
-    const info = await getChainInfo();
-    const el = document.getElementById("chain-block");
-    if (el) el.textContent = `#${info.blockNumber}`;
-  } catch {}
-}
-
-async function handleConnectWallet(): Promise<void> {
-  const btnEl = document.getElementById("btn-connect-wallet")!;
-  try {
-    if (typeof (window as any).ethereum !== "undefined") {
-      await chainConnect();
-    } else {
-      const key = prompt("No MetaMask detected.\nEnter testnet private key (0x...):");
-      if (!key) return;
-      await connectWithKey(key);
-    }
-    const ws = getWalletState();
-    if (!ws.connected || !ws.address) return;
-    document.getElementById("wallet-addr")!.textContent = ws.address.slice(0, 6) + "..." + ws.address.slice(-4);
-    document.getElementById("wallet-bal")!.textContent = parseFloat(ws.balance || "0").toFixed(2);
-    document.getElementById("wallet-info")!.classList.remove("hidden");
-    btnEl.textContent = "✅ Connected";
-    (btnEl as HTMLButtonElement).style.background = "#1a3a1a";
-  } catch (err: any) {
-    alert("Wallet connection failed: " + (err.message || err));
-  }
-}
-
+// ── Chain integration (wallet UI via SDK) ──────────
 async function handleSubmitChain(): Promise<void> {
   if (!lastGameResult) return;
   const ws = getWalletState();
